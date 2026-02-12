@@ -479,7 +479,7 @@ export default function Report() {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Box sx={{ bgcolor: '#f4f6f8', minHeight: '100vh', py: 4 }}>
+      <Box sx={{ minHeight: '100vh', py: 4 }}>
         <Container maxWidth="lg">
           {/* Header Card */}
           <Paper

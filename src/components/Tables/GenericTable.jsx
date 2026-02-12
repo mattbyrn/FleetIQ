@@ -245,6 +245,16 @@ export default function GenericTable(props) {
 
   const filterRows = () => {
     return props.documents.filter((row) => {
+      // Allow callers to provide a custom inactive filter. Signature: (row, showInactive) => boolean
+      if (props.inactiveFilter) {
+        try {
+          if (!props.inactiveFilter(row, showInactive)) return false;
+        } catch (err) {
+          // if the provided filter throws, fall back to default behavior
+          console.warn('inactiveFilter threw an error', err);
+        }
+      }
+
       // Check if there's a matching vehicle document
       const matchingVehicle = vehiclesCollection?.find(
         (v) => v.registration === row.registration
@@ -296,7 +306,7 @@ export default function GenericTable(props) {
                 color="primary"
               />
             }
-            label="Show Inactive Vehicles"
+            label={props.inactiveLabel || 'Show Inactive Vehicles'}
             style={{ marginLeft: '20px', marginBottom: '10px' }}
           />
           <DataTable

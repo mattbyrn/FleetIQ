@@ -24,6 +24,11 @@ export default function Faults() {
     title: 'Faults',
     sortField: 1,
     sortAsc: false,
+    inactiveLabel: 'Show resolved faults',
+    inactiveFilter: (row, showResolved) => {
+      if (!showResolved && row && row.status && row.status.toLowerCase() === 'resolved') return false;
+      return true;
+    },
     // disable add/edit for faults
     disableAdd: true,
     disableEdit: true,

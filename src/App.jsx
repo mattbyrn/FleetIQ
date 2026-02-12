@@ -19,6 +19,7 @@ import Inspections from './pages/inspections/Inspections';
 import Report from './pages/inspections/Report';
 import Faults from './pages/faults/Faults';
 import Maintenance from './pages/maintenance/Maintenance';
+import Walkaround from './pages/walkaround/Walkaround';
 
 function App() {
   const { authIsReady, user } = useAuthContext();
@@ -46,6 +47,9 @@ function App() {
               <Route path="/tachocalibration" element={user ? <TachoCalibration /> : <Navigate to="/" />} />
               <Route path="/tax" element={user ? <Tax /> : <Navigate to="/" />} />
               <Route path="/vehicles" element={user ? <Vehicles /> : <Navigate to="/" />} />
+              {/* Public walkaround routes - no auth required */}
+              <Route path="/walkaround" element={<Walkaround />} />
+              <Route path="/walkaround/:id" element={<Walkaround />} />
             </Routes>
           </ClippedDrawer>
         </BrowserRouter>

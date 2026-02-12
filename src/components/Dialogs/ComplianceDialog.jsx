@@ -116,8 +116,14 @@ const AddService = (props) => {
       }
 
       // if this is a record on the CVRT table, we need to update the inspections table too.
+      // BUT only if it's not a non-service vehicle
       if (props.collection === 'cvrts') {
-        scheduleInspections(recordData);
+        const vehicle = props.vehicles?.find(
+          (v) => v.registration === registration
+        );
+        if (vehicle && !vehicle.nonServiceVehicle) {
+          scheduleInspections(recordData);
+        }
       }
 
       setExpiryDate(new Date());
