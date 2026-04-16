@@ -1,0 +1,13 @@
+  in cmd at project root:  
+
+firebase functions:secrets:set LETTERMINT_API_TOKEN
+
+  It will prompt you to paste the value — paste your API token from the LetterMint
+  dashboard and press Enter.
+
+  Then:
+
+firebase functions:secrets:set LETTERMINT_FROM_EMAIL
+
+  When prompted, enter:
+  FleetIQ <noreply@fleetiq.ie>

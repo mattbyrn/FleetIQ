@@ -1,23 +1,20 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import DataTable from 'react-data-table-component';
 import Card from '@material-ui/core/Card';
 import SortIcon from '@material-ui/icons/ArrowDownward';
 import { Typography } from '@material-ui/core';
-import { Box, Button, Tooltip, TextField } from '@material-ui/core';
-import AddIcon from '@material-ui/icons/Add';
+import { Box } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { pink, yellow } from '@material-ui/core/colors';
 import Paper from '@material-ui/core/Paper';
-import { useState, useEffect, useContext } from 'react';
-import EditIcon from '@material-ui/icons/Edit';
-import DeleteIcon from '@material-ui/icons/Delete';
-import FilterListIcon from '@material-ui/icons/FilterList';
+import { useState } from 'react';
 import { useAuthContext } from '../../hooks/useAuthContext';
 import { useFirestore } from '../../hooks/useFirestore';
+import { projectFirestore } from '../../firebase/config';
+import { DIARY_COLLECTION, fetchJobGroup } from '../../utils/diaryHelpers';
 import JobDialog from '../Dialogs/JobDialog';
-import { Add } from '@mui/icons-material';
 import TableHeader from './TableHeader';
+import toast from 'react-hot-toast';
 
 const useStyles = makeStyles((theme) => ({
   style: {
@@ -29,8 +26,6 @@ const useStyles = makeStyles((theme) => ({
     fontWeight: 400,
     lineHeight: 1.42857,
     textRendering: 'optimizeLegibility',
-    width: '100%',
-    height: '100%',
     display: 'flex',
     flexDirection: 'column',
   },
@@ -115,33 +110,25 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 function sortByRecent(a, b) {
-  if (a.createdAt.seconds < b.createdAt.seconds) {
-    return 1;
-  }
-
-  if (a.createdAt.seconds > b.createdAt.seconds) {
-    return -1;
-  }
-
+  const aSeconds = a.createdAt?.seconds || 0;
+  const bSeconds = b.createdAt?.seconds || 0;
+  if (aSeconds < bSeconds) return 1;
+  if (aSeconds > bSeconds) return -1;
   return 0;
 }
 
 function toDateTime(secs) {
-  var t = new Date(1970, 0, 1); // Epoch
-  var localOffset = t.getTimezoneOffset() * 1000; // Get local timezone offset in milliseconds
-  secs += localOffset / 1000; // Add the offset to convert to UTC
-
+  var t = new Date(1970, 0, 1);
+  var localOffset = t.getTimezoneOffset() * 1000;
+  secs += localOffset / 1000;
   t.setSeconds(secs);
-
   var options = { year: 'numeric', month: '2-digit', day: '2-digit' };
-  var DateString = t.toLocaleDateString('en-GB', options); // Format date as dd/mm/yyyy
+  var DateString = t.toLocaleDateString('en-GB', options);
   var TimeString = t.toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
-  }); // Format time as HH:MM
-
-  var timeDateString = DateString + ' ' + TimeString;
-  return timeDateString;
+  });
+  return DateString + ' ' + TimeString;
 }
 
 export default function DiaryTable(props) {
@@ -152,72 +139,127 @@ export default function DiaryTable(props) {
   const [toggleCleared, setToggleCleared] = React.useState(false);
   const [columnFilters, setColumnFilters] = useState({});
   const { user } = useAuthContext();
-  const { addDocument, deleteDocument, updateDocument, response } =
-    useFirestore(props.collection);
-  const docToAdd = props.docToAdd;
+  const { deleteDocument } = useFirestore(DIARY_COLLECTION);
 
   const filterTerm = (event) => setSearchTerm(event.target.value);
 
-  const [AddDialogState, setDialogState] = useState({
-    shown: false,
-    edit: false,
-    selectedRows: '',
-    title: '',
-    message: '',
-    flavour: 'success',
+  const [dialogState, setDialogState] = useState({
+    open: false,
+    mode: 'add',
+    groupDocs: [],
+    editData: null,
   });
 
-  const handleDelete = () => {
-    if (selectedRows.length == 1) {
-      if (window.confirm('Are you sure you want to delete this row?')) {
-        setToggleCleared(!toggleCleared);
-        deleteDocument(selectedRows[0].id);
-        selectedRows.length = 0;
+  const handleDelete = async () => {
+    if (selectedRows.length === 0) return;
+
+    if (selectedRows.length === 1) {
+      const row = selectedRows[0];
+      const hasGroup = !!row.jobGroupId;
+
+      if (hasGroup) {
+        const deleteGroup = window.confirm(
+          'This entry is part of a multi-day job.\n\n' +
+            'Click OK to delete ALL days in this job group.\n' +
+            'Click Cancel to delete only this single day.'
+        );
+
+        if (deleteGroup) {
+          await deleteJobGroup(row.jobGroupId);
+        } else {
+          if (window.confirm('Delete this single day entry?')) {
+            deleteDocument(row.id);
+            toast.success('Entry deleted');
+          }
+        }
+      } else {
+        if (window.confirm('Are you sure you want to delete this row?')) {
+          deleteDocument(row.id);
+          toast.success('Entry deleted');
+        }
       }
     } else {
       var confirm = prompt(
         'Please enter "CONFIRM" to delete these rows. \nWARNING: This cannot be undone!'
       );
       if (confirm && confirm.toLowerCase() === 'confirm') {
-        setToggleCleared(!toggleCleared);
         for (let i = 0; i < selectedRows.length; i++) {
           deleteDocument(selectedRows[i].id);
         }
-        selectedRows.length = 0;
+        toast.success(`${selectedRows.length} entries deleted`);
       }
     }
+    setToggleCleared(!toggleCleared);
+    setSelectedRows([]);
   };
+
+  const deleteJobGroup = async (jobGroupId) => {
+    const snapshot = await projectFirestore
+      .collection(DIARY_COLLECTION)
+      .where('jobGroupId', '==', jobGroupId)
+      .get();
+    if (!snapshot.empty) {
+      const batch = projectFirestore.batch();
+      snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+      toast.success(`Deleted ${snapshot.size} entries from job group`);
+    }
+  };
+
   const handleAdd = () => {
     setDialogState({
-      shown: true,
-      edit: false,
-      selectedRows: '',
-      title: 'Add Job To Diary',
-      message: 'jobs',
-      flavour: 'success',
+      open: true,
+      mode: 'add',
+      groupDocs: [],
+      editData: null,
     });
   };
 
-  const handleEdit = () => {
-    //updateDocument()
+  const handleEdit = async () => {
+    if (selectedRows.length !== 1) return;
+    const selected = selectedRows[0];
+
+    if (selected.jobGroupId) {
+      // Auto-detect group → open JobDialog in editGroup mode
+      setControlsDisabled(true);
+      try {
+        const docs = await fetchJobGroup(selected.jobGroupId);
+        setDialogState({
+          open: true,
+          mode: 'editGroup',
+          groupDocs: docs,
+          editData: null,
+        });
+      } catch (err) {
+        toast.error('Failed to fetch job group');
+      } finally {
+        setControlsDisabled(false);
+      }
+    } else {
+      // Standalone → open JobDialog in editSingle mode
+      setDialogState({
+        open: true,
+        mode: 'editSingle',
+        groupDocs: [],
+        editData: { ...selected, _collectionPath: DIARY_COLLECTION },
+      });
+    }
   };
 
   const handleFilter = () => {};
 
   const selectedItemText = () => {
     if (selectedRows.length === 0) return '';
-    if (selectedRows.length === 1) return '1 row selectedRows';
+    if (selectedRows.length === 1) return '1 row selected';
     if (selectedRows.length > 1 && selectedRows.length < props.documents.length)
-      return `${selectedRows.length} ${'rows selectedRows'}`;
+      return `${selectedRows.length} rows selected`;
     if (selectedRows.length === props.documents.length)
-      return 'All rows selectedRows';
-
+      return 'All rows selected';
     return '';
   };
 
   const rangeFilter = (greaterThan, value, lessThan) => {
     if (value >= greaterThan && value <= lessThan) return true;
-
     return false;
   };
 
@@ -225,9 +267,9 @@ export default function DiaryTable(props) {
     props.documents.sort(sortByRecent);
 
     for (let i = 0; i < props.documents.length; i++) {
-      props.documents[i].recordedAt = toDateTime(
-        props.documents[i].createdAt.seconds
-      );
+      props.documents[i].recordedAt = props.documents[i].createdAt?.seconds
+        ? toDateTime(props.documents[i].createdAt.seconds)
+        : '-';
     }
 
     let res = props.documents.filter((row) => {
@@ -302,28 +344,30 @@ export default function DiaryTable(props) {
 
           <DataTable
             columns={props.columns}
-            onSelectedRowsRowsChange={(e) =>
-              setSelectedRows(e.selectedRowsRows)
+            onSelectedRowsChange={(e) =>
+              setSelectedRows(e.selectedRows)
             }
             data={filterRows()}
             sortIcon={<SortIcon />}
-            clearSelectedRowsRows={toggleCleared}
+            clearSelectedRows={toggleCleared}
             selectableRows
             striped
+            expandableRows
+            expandableRowsComponent={props.expandedComponent}
           />
 
           <JobDialog
-            show={AddDialogState.shown}
-            title={AddDialogState.title}
-            edit={AddDialogState.edit}
-            collection={props.collection}
-            selectedRows={AddDialogState.selectedRows}
-            message={AddDialogState.message}
-            flavour={AddDialogState.flavour}
-            callback={(res) => {
-              let callback = AddDialogState.callback;
-              setDialogState({ shown: false });
-              if (callback) callback(res);
+            open={dialogState.open}
+            mode={dialogState.mode}
+            groupDocs={dialogState.groupDocs}
+            editData={dialogState.editData}
+            onClose={() =>
+              setDialogState({ open: false, mode: 'add', groupDocs: [], editData: null })
+            }
+            onSaved={() => {
+              setDialogState({ open: false, mode: 'add', groupDocs: [], editData: null });
+              setToggleCleared(!toggleCleared);
+              setSelectedRows([]);
             }}
           />
 

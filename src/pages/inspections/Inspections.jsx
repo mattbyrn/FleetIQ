@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import InspectionDialog from '../../components/Dialogs/InspectionDialog';
+import toast from 'react-hot-toast';
 
 export default function Inspections() {
   const months = [
@@ -38,9 +39,14 @@ export default function Inspections() {
 
   const { documents, error } = useCollection(collection);
 
-  const toggleComplete = (row) => {
+  const toggleComplete = async (row) => {
     const updatedRow = { ...row, complete: !row.complete };
-    updateDocument(row.id, updatedRow);
+    try {
+      await updateDocument(row.id, updatedRow);
+      toast.success(updatedRow.complete ? 'Marked complete' : 'Marked incomplete');
+    } catch (err) {
+      toast.error('Failed to update inspection');
+    }
   };
 
   const [showInspectionDialog, setShowInspectionDialog] = useState(false);

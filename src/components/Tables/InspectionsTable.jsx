@@ -8,7 +8,6 @@ import Paper from '@material-ui/core/Paper';
 import { useState } from 'react';
 import { useAuthContext } from '../../hooks/useAuthContext';
 import { useFirestore } from '../../hooks/useFirestore';
-import JobDialog from '../Dialogs/JobDialog';
 
 const useStyles = makeStyles((theme) => ({
   style: {

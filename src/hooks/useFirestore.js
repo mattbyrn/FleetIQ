@@ -30,6 +30,14 @@ const firestoreReducer = (state, action) => {
         error: null,
       };
 
+    case 'UPDATED_DOCUMENT':
+      return {
+        isPending: false,
+        document: action.payload,
+        success: true,
+        error: null,
+      };
+
     case 'ERROR':
       return {
         isPending: false,
@@ -127,6 +135,55 @@ export const useFirestore = (collection) => {
     }
   };
 
+  const addDocumentBatch = async (items) => {
+    dispatch({ type: 'IS_PENDING' });
+    try {
+      const batch = projectFirestore.batch();
+      const lastModified = timestamp.fromDate(new Date());
+      const modifiedBy = user.displayName;
+      for (const { collectionPath, doc } of items) {
+        const docRef = projectFirestore.collection(collectionPath).doc();
+        batch.set(docRef, { ...doc, lastModified, modifiedBy });
+      }
+      await batch.commit();
+      dispatchIfNotCancelled({ type: 'ADDED_DOCUMENT', payload: null });
+    } catch (err) {
+      console.log(err);
+      dispatchIfNotCancelled({ type: 'ERROR', payload: err.message });
+      throw err;
+    }
+  };
+
+  const updateDocumentInCollection = async (collectionName, id, updatedDoc) => {
+    dispatch({ type: 'IS_PENDING' });
+    try {
+      const lastModified = timestamp.fromDate(new Date());
+      const modifiedBy = user.displayName;
+      await projectFirestore.collection(collectionName).doc(id).update({
+        ...updatedDoc,
+        lastModified,
+        modifiedBy,
+      });
+      dispatchIfNotCancelled({ type: 'UPDATED_DOCUMENT', payload: null });
+    } catch (err) {
+      console.log(err);
+      dispatchIfNotCancelled({ type: 'ERROR', payload: err.message });
+      throw err;
+    }
+  };
+
+  const deleteDocumentFromCollection = async (collectionName, id) => {
+    dispatch({ type: 'IS_PENDING' });
+    try {
+      await projectFirestore.collection(collectionName).doc(id).delete();
+      dispatchIfNotCancelled({ type: 'DELETED_DOCUMENT', payload: null });
+    } catch (err) {
+      console.log(err);
+      dispatchIfNotCancelled({ type: 'ERROR', payload: err.message });
+      throw err;
+    }
+  };
+
   useEffect(() => {
     return () => setIsCancelled(true);
   }, []);
@@ -134,8 +191,11 @@ export const useFirestore = (collection) => {
   return {
     addDocument,
     addDocumentToCollection,
+    addDocumentBatch,
     updateDocument,
+    updateDocumentInCollection,
     deleteDocument,
+    deleteDocumentFromCollection,
     response,
   };
 };

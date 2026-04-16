@@ -33,7 +33,7 @@ const useStyles = makeStyles((theme) => ({
     flexShrink: 0,
   },
   activeDrawerPaper: {
-    width: 250,
+    width: 280,
   },
   inactiveDrawerPaper: {
     width: 0,
@@ -296,7 +296,7 @@ export default function ClippedDrawer(props) {
         <Drawer
           className={classes.drawer}
           style={{
-            width: isActive ? 250 : 0,
+            width: isActive ? 280 : 0,
             transition: 'width 0.1s',
           }}
           variant="permanent"

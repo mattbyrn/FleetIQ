@@ -31,11 +31,14 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
+import InspectionImageUpload from '../../components/InspectionImageUpload';
+
 // Assuming these are your custom hooks
 import useInspectionReport from '../../hooks/useInspectionReport';
 import useFetchInspectionReport from '../../hooks/useFetchInspectionReport';
 import useCreateFault from '../../hooks/useCreateFault';
 import useCreateMaintenance from '../../hooks/useCreateMaintenance';
+import toast from 'react-hot-toast';
 
 const A_ITEMS = [
   [1, '1', 'Registration/Licence/VIN'],
@@ -145,6 +148,7 @@ export default function Report() {
         actionTaken: '',
         partsReplaced: '',
         notes: '',
+        images: [],
       };
     });
     return s;
@@ -179,7 +183,11 @@ export default function Report() {
   }, [useExisting, existingData]);
 
   const handleChange = (sectionSetter, sectionState, key, field, value) => {
-    sectionSetter({ ...sectionState, [key]: { ...sectionState[key], [field]: value } });
+    const updated = { ...sectionState[key], [field]: value };
+    if (field === 'condition' && value === 'satisfactory') {
+      updated.images = [];
+    }
+    sectionSetter({ ...sectionState, [key]: updated });
     // Clear rectified error when actionTaken is provided or rectified is unchecked
     if (field === 'actionTaken') {
       if (value && value.toString().trim() !== '') {
@@ -198,6 +206,16 @@ export default function Report() {
     if (field === 'condition' && value !== 'requires_action') {
       setFailErrors((s) => s.filter((l) => l !== key));
     }
+  };
+
+  const handleImagesChange = (sectionSetter, key, updater) => {
+    sectionSetter((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        images: typeof updater === 'function' ? updater(prev[key].images || []) : updater,
+      },
+    }));
   };
 
   const handleSave = async (e) => {
@@ -277,6 +295,7 @@ export default function Report() {
             vehicle: registration || null,
             odometer: odometer !== '' ? Number(odometer) : null,
             inspectionDate: inspectionDate || null,
+            images: fi.images || [],
           });
 
           if (faultRes && faultRes.success) {
@@ -309,7 +328,10 @@ export default function Report() {
         }
       }
 
+      toast.success('Inspection report saved');
       navigate('/inspections');
+    } else {
+      toast.error('Failed to save inspection report');
     }
   };
 
@@ -424,7 +446,7 @@ export default function Report() {
                     size="small"
                     error={failErrors.includes(label)}
                     helperText={failErrors.includes(label) ? 'Required' : ''}
-                    sx={{ mb: item.rectified ? 2 : 0, bgcolor: 'background.paper' }}
+                    sx={{ mb: 1.5, bgcolor: 'background.paper' }}
                   />
 
                   {item.rectified && (
@@ -464,6 +486,11 @@ export default function Report() {
                           multiline
                           rows={2}
                           sx={{ bgcolor: 'background.paper' }}
+                        />
+                        <InspectionImageUpload
+                          images={item.images || []}
+                          onChange={(updater) => handleImagesChange(setter, label, updater)}
+                          storagePath={`inspections/${(registration || 'unknown').replace(/[^a-zA-Z0-9-_]/g, '_')}/report/${label.replace(/[^a-zA-Z0-9-_]/g, '_')}`}
                         />
                       </Grid>
                     </Grid>

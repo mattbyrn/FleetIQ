@@ -22,9 +22,11 @@ import {
   ErrorOutline as FailIcon,
   CheckCircleOutline as PassIcon,
 } from '@mui/icons-material';
+import InspectionImageUpload from '../../components/InspectionImageUpload';
 import { useWalkaroundInspection } from '../../hooks/useWalkaroundInspection';
 import { useCreateFault } from '../../hooks/useCreateFault';
 import { timestamp } from '../../firebase/config';
+import toast from 'react-hot-toast';
 
 const WALKAROUND_ITEMS = [
   {
@@ -61,7 +63,7 @@ export default function Walkaround() {
   const [odometer, setOdometer] = useState('');
   const [inspectionDate, setInspectionDate] = useState(new Date());
   const [items, setItems] = useState(() =>
-    Object.fromEntries(WALKAROUND_ITEMS.map((item) => [item.label, { condition: 'satisfactory', description: '' }]))
+    Object.fromEntries(WALKAROUND_ITEMS.map((item) => [item.label, { condition: 'satisfactory', description: '', images: [] }]))
   );
   const [initialItems, setInitialItems] = useState({}); // Track initial state for fault creation
 
@@ -107,6 +109,7 @@ export default function Walkaround() {
         ...prev[itemLabel],
         condition,
         description: condition === 'satisfactory' ? '' : prev[itemLabel].description,
+        images: condition === 'satisfactory' ? [] : prev[itemLabel].images,
       },
     }));
 
@@ -138,6 +141,17 @@ export default function Walkaround() {
         return newErrors;
       });
     }
+  };
+
+  // Handle images change (functional updater for stale-closure safety during async uploads)
+  const handleImagesChange = (itemLabel, updater) => {
+    setItems((prev) => ({
+      ...prev,
+      [itemLabel]: {
+        ...prev[itemLabel],
+        images: typeof updater === 'function' ? updater(prev[itemLabel].images || []) : updater,
+      },
+    }));
   };
 
   // Validate form
@@ -209,6 +223,7 @@ export default function Walkaround() {
             inspectionDate: timestamp.fromDate(inspectionDate),
             priority: 'normal',
             status: 'open',
+            images: data.images || [],
           });
           if (result.success) faultCount++;
         }
@@ -217,6 +232,7 @@ export default function Walkaround() {
         setWalkaroundId(inspectionResult.id);
         setFaultsCreated(faultCount);
         setSubmitSuccess(true);
+        toast.success('Walkaround submitted');
       } else if (isEditMode) {
         // UPDATE EXISTING WALKAROUND
         const updateResult = await updateWalkaround(walkaroundId, {
@@ -250,6 +266,7 @@ export default function Walkaround() {
             inspectionDate: timestamp.fromDate(inspectionDate),
             priority: 'normal',
             status: 'open',
+            images: data.images || [],
           });
           if (result.success) newFaultCount++;
         }
@@ -260,10 +277,12 @@ export default function Walkaround() {
         // Show success screen
         setFaultsCreated(newFaultCount);
         setSubmitSuccess(true);
+        toast.success('Walkaround updated');
       }
     } catch (err) {
       console.error('Error submitting walkaround:', err);
       setErrors({ submit: 'An error occurred while submitting the inspection' });
+      toast.error('Failed to submit walkaround');
     } finally {
       setSubmitting(false);
     }
@@ -505,6 +524,12 @@ export default function Walkaround() {
                         error={!!errors[item.label]}
                         helperText={errors[item.label] || ''}
                         sx={{ bgcolor: 'background.paper' }}
+                      />
+                      <InspectionImageUpload
+                        images={itemData.images || []}
+                        onChange={(updater) => handleImagesChange(item.label, updater)}
+                        storagePath={`inspections/${(registration || 'unknown').replace(/[^a-zA-Z0-9-_]/g, '_')}/walkaround/${item.label.replace(/[^a-zA-Z0-9-_]/g, '_')}`}
+                        disabled={submitting}
                       />
                     </Box>
                   )}

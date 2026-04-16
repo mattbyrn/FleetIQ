@@ -11,6 +11,7 @@ import NoteAltOutlinedIcon from '@mui/icons-material/NoteAltOutlined';
 import FilePresentIcon from '@mui/icons-material/FilePresent';
 import OKDialog from '../../components/Dialogs/OKDialog';
 import { defaultDialogState } from '../../utils/defaultConfig';
+import toast from 'react-hot-toast';
 
 export default function Maintenance() {
   const collection = 'maintenance'; // THIS IS WHERE THE TABLE NAME GOES
@@ -24,16 +25,26 @@ export default function Maintenance() {
   const openAddDialog = () => setDialogState({ shown: true, edit: false, editData: null });
   const closeDialog = () => setDialogState({ shown: false, edit: false, editData: null });
 
-  const handleDelete = (selected) => {
+  const handleDelete = async (selected) => {
     if (!selected || selected.length === 0) return;
     if (selected.length === 1) {
       if (window.confirm('Are you sure you want to delete this row?')) {
-        deleteDocument(selected[0].id);
+        try {
+          await deleteDocument(selected[0].id);
+          toast.success('Maintenance record deleted');
+        } catch (err) {
+          toast.error('Failed to delete record');
+        }
       }
     } else {
       const confirm = prompt('Please enter "CONFIRM" to delete these rows.\nWARNING: This cannot be undone!');
       if (confirm && confirm.toLowerCase() === 'confirm') {
-        for (const r of selected) deleteDocument(r.id);
+        try {
+          for (const r of selected) await deleteDocument(r.id);
+          toast.success(`${selected.length} records deleted`);
+        } catch (err) {
+          toast.error('Failed to delete records');
+        }
       }
     }
   };

@@ -29,6 +29,7 @@ import { Stack, Input } from '@mui/material';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { handleFileUpload } from '../../utils/fileHandler';
 import Typography from '@material-ui/core/Typography';
+import toast from 'react-hot-toast';
 
 const useStyles = makeStyles((theme) => ({}));
 
@@ -72,6 +73,9 @@ const AddService = (props) => {
       setRegistration(props.editData.registration || '');
       setExpiryDate(expiryDate || '');
       setComment(props.editData.comment || '');
+      if (props.editData.fileUrl) {
+        setFile({ name: props.editData.fileName, url: props.editData.fileUrl });
+      }
     }
   }, [props.edit, props.editData]);
 
@@ -90,7 +94,7 @@ const AddService = (props) => {
     return isVehicleSelected;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (validateForm()) {
       // fire extinguishers & tacho's are recorded by SERVICE date, not EXPIRY date, so we need to add the appropriate number of years to their service date to get their expiry date
       if (props.collection === 'fireextinguishers') {
@@ -109,10 +113,17 @@ const AddService = (props) => {
         fileUrl: file ? file.url : '',
       };
 
-      if (props.edit) {
-        updateDocument(props.editData.id, recordData);
-      } else {
-        addDocument(recordData);
+      try {
+        if (props.edit) {
+          await updateDocument(props.editData.id, recordData);
+          toast.success('Record updated');
+        } else {
+          await addDocument(recordData);
+          toast.success('Record added');
+        }
+      } catch (err) {
+        toast.error('Failed to save record');
+        return;
       }
 
       // if this is a record on the CVRT table, we need to update the inspections table too.

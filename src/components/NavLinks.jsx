@@ -19,51 +19,25 @@ import AssignmentTurnedInIcon from '@mui/icons-material/AssignmentTurnedIn';
 import SearchIcon from '@mui/icons-material/Search';
 import AssignmentLateIcon from '@mui/icons-material/AssignmentLate';
 import EngineeringIcon from '@mui/icons-material/Engineering';
-
+import ChecklistRtlIcon from '@mui/icons-material/ChecklistRtl';
+import ViewTimelineIcon from '@mui/icons-material/ViewTimeline';
+import DepartureBoardIcon from '@mui/icons-material/DepartureBoard';
 function NavLinks() {
   let { t } = useTranslation();
   return {
-    audit: {
-      heading: t('Audit Compliance'),
-      icon: <ImportContacts />,
+    diary: {
+      heading: t('Jobs'),
+      icon: <DepartureBoardIcon />,
       links: {
-        quickAudit: {
-          text: t('Audit Compliance'),
-          path: '/quick-audit',
-          icon: <SearchIcon />,
+        recordData: {
+          text: t('Diary'),
+          path: '/diary',
+          icon: <ImportContacts />,
         },
-      },
-    },
-    inspections: {
-      heading: t('Inspections'),
-      icon: <ImportContacts />,
-      links: {
-        inspections: {
-          text: t('Inspections'),
-          path: '/inspections',
-          icon: <AssignmentTurnedInIcon />,
-        },
-      },
-    },
-    faults: {
-      heading: t('Faults'),
-      icon: <ImportContacts />,
-      links: {
-        faults: {
-          text: t('Faults'),
-          path: '/faults',
-          icon: <AssignmentLateIcon />,
-        },
-      },
-    },
-    maintenance: {
-      heading: t('Maintenance'),
-      icon: <ImportContacts />,
-      links: {
-        faults: {
-          text: t('Maintenance'),
-          path: '/maintenance',
-          icon: <EngineeringIcon />,
+        dailyPlanner: {
+          text: t('Daily Planner'),
+          path: '/daily-planner',
+          icon: <ViewTimelineIcon />,
         },
       },
     },
@@ -104,6 +78,64 @@ function NavLinks() {
         },
       },
     },
+    audit: {
+      heading: t('Expiration Check'),
+      icon: <ImportContacts />,
+      links: {
+        quickAudit: {
+          text: t('Expiration Check'),
+          path: '/quick-audit',
+          icon: <SearchIcon />,
+        },
+      },
+    },
+
+    inspections: {
+      heading: t('Inspections'),
+      icon: <ImportContacts />,
+      links: {
+        inspections: {
+          text: t('Inspections'),
+          path: '/inspections',
+          icon: <AssignmentTurnedInIcon />,
+        },
+      },
+    },
+    walkarounds: {
+      heading: t('Driver Walkarounds'),
+      icon: <ImportContacts />,
+      links: {
+        walkarounds: {
+          text: t('Driver Walkarounds'),
+          path: '/walkarounds',
+          icon: <ChecklistRtlIcon />,
+        },
+      },
+    },
+
+    faults: {
+      heading: t('Discovered Faults'),
+      icon: <ImportContacts />,
+      links: {
+        faults: {
+          text: t('Discovered Faults'),
+          path: '/faults',
+          icon: <AssignmentLateIcon />,
+        },
+      },
+    },
+    maintenance: {
+      heading: t('Job Sheets'),
+      icon: <ImportContacts />,
+      links: {
+        faults: {
+          text: t('Job Sheets'),
+          path: '/maintenance',
+          icon: <EngineeringIcon />,
+        },
+      },
+    },
+
     registerVehicles: {
       heading: t('Vehicles'),
       icon: <ImportContacts />,
@@ -123,17 +155,6 @@ function NavLinks() {
           text: t('Drivers'),
           path: '/drivers',
           icon: <Person />,
-        },
-      },
-    },
-    diary: {
-      heading: t('Diary'),
-      icon: <ImportContacts />,
-      links: {
-        recordData: {
-          text: t('Diary'),
-          path: '/diary',
-          icon: <ImportContacts />,
         },
       },
     },

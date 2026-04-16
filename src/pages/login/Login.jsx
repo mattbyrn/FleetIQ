@@ -2,14 +2,19 @@ import styles from './Login.module.css';
 import React from 'react';
 import { useState } from 'react';
 import { useLogin } from '../../hooks/useLogin';
+import toast from 'react-hot-toast';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login, error, isPending } = useLogin();
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    login(email, password);
+    try {
+      await login(email, password);
+    } catch (err) {
+      toast.error('Login failed');
+    }
   };
 
   return (

@@ -20,6 +20,26 @@ export const defaultVehicleState = {
   model: '',
   capacity: '',
   vin: '',
+  licenceRequired: 'B',
+  comment: '',
+};
+
+export const defaultDriverState = {
+  name: '',
+  phone: '',
+  licenceNumber: '',
+  hasD1: false,
+  hasD: false,
+  licenceExpiry: null,
+  cpcNumber: '',
+  cpcExpiry: null,
+  hasPsvLicence: false,
+  psvLicenceNumber: '',
+  psvExpiry: null,
+  hasSpsvLicence: false,
+  spsvLicenceNumber: '',
+  spsvExpiry: null,
+  vettings: {},
   comment: '',
 };
 
@@ -63,5 +83,10 @@ export const defaultDialogMapping = {
     title: 'Vehicle',
     dialogType: 'vehicle',
     collection: 'vehicles',
+  },
+  drivers: {
+    title: 'Driver',
+    dialogType: 'driver',
+    collection: 'drivers',
   },
 };

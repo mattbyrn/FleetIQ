@@ -44,6 +44,7 @@ export const useCreateFault = () => {
     odometer,
     inspectionDate,
     priority = 'normal',
+    images = [],
   }) => {
     dispatch({ type: 'IS_PENDING' });
     try {
@@ -59,6 +60,7 @@ export const useCreateFault = () => {
         odometer: odometer !== undefined ? odometer : null,
         inspectionDate: inspectionDate || null,
         priority,
+        images: images || [],
         status: 'open',
         createdAt,
         createdBy,

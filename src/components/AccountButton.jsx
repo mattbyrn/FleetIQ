@@ -5,6 +5,7 @@ import { makeStyles } from '@material-ui/styles';
 import { useAuthContext } from '../hooks/useAuthContext';
 import { useLogout } from '../hooks/useLogout';
 import React from 'react';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const useStyles = makeStyles({
@@ -25,9 +26,14 @@ function AccountButton(props) {
     setAnchorEl(event.currentTarget);
   };
 
-  const handleAccountClose = () => {
+  const handleAccountClose = async () => {
     setAnchorEl(null);
-    logout();
+    try {
+      await logout();
+      toast.success('Logged out');
+    } catch (err) {
+      toast.error('Failed to log out');
+    }
   };
 
   const handleClose = () => {

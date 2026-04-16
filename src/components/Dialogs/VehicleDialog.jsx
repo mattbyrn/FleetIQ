@@ -9,6 +9,7 @@ import {
   Switch,
   FormControlLabel,
   Checkbox,
+  MenuItem,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { useAuthContext } from '../../hooks/useAuthContext';
@@ -21,6 +22,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import SaveAsIcon from '@mui/icons-material/SaveAs';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { handleFileUpload } from '../../utils/fileHandler';
+import toast from 'react-hot-toast';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -50,6 +52,7 @@ const AddVehicleService = (props) => {
   const [model, setModel] = useState(defaultVehicleState.model);
   const [capacity, setCapacity] = useState(defaultVehicleState.capacity);
   const [vin, setVIN] = useState(defaultVehicleState.vin);
+  const [licenceRequired, setLicenceRequired] = useState(defaultVehicleState.licenceRequired);
   const [comment, setComment] = useState(defaultVehicleState.comment);
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -66,6 +69,7 @@ const AddVehicleService = (props) => {
       setModel(props.editData.model || '');
       setCapacity(props.editData.capacity || '');
       setVIN(props.editData.vin || '');
+      setLicenceRequired(props.editData.licenceRequired || 'B');
       setComment(props.editData.comment || '');
       setFile(
         { name: props.editData.fileName, url: props.editData.fileUrl } || null
@@ -86,7 +90,7 @@ const AddVehicleService = (props) => {
     return isRegistrationValid && isCapacityValid;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (validateForm()) {
       const recordData = {
         registration,
@@ -94,6 +98,7 @@ const AddVehicleService = (props) => {
         model,
         capacity,
         vin,
+        licenceRequired,
         comment,
         fileName: file ? file.name : '',
         fileUrl: file ? file.url : '',
@@ -101,10 +106,17 @@ const AddVehicleService = (props) => {
         nonServiceVehicle, // Include 'Non-Service Vehicle' state
       };
 
-      if (props.edit) {
-        updateDocument(props.editData.id, recordData);
-      } else {
-        addDocument(recordData);
+      try {
+        if (props.edit) {
+          await updateDocument(props.editData.id, recordData);
+          toast.success('Vehicle updated');
+        } else {
+          await addDocument(recordData);
+          toast.success('Vehicle added');
+        }
+      } catch (err) {
+        toast.error('Failed to save vehicle');
+        return;
       }
 
       // Reset form
@@ -113,6 +125,7 @@ const AddVehicleService = (props) => {
       setModel('');
       setCapacity('');
       setVIN('');
+      setLicenceRequired('B');
       setFile(null);
       setInactive(false);
       setNonServiceVehicle(false);
@@ -207,6 +220,21 @@ const AddVehicleService = (props) => {
           fullWidth
           variant="outlined"
         />
+
+        <TextField
+          select
+          value={licenceRequired}
+          onChange={(e) => setLicenceRequired(e.target.value)}
+          margin="normal"
+          id="licenceRequired"
+          label="Licence Required"
+          fullWidth
+          variant="outlined"
+        >
+          <MenuItem value="B">B</MenuItem>
+          <MenuItem value="D1">D1</MenuItem>
+          <MenuItem value="D">D</MenuItem>
+        </TextField>
 
         <TextField
           style={{ marginTop: '15px' }}

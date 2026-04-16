@@ -25,6 +25,7 @@ import { useFirestore } from '../../hooks/useFirestore';
 import useUpdateFault from '../../hooks/useUpdateFault';
 import { useVehicleFaults } from '../../hooks/useVehicleFaults';
 import { timestamp, projectStorage } from '../../firebase/config';
+import toast from 'react-hot-toast';
 
 const STATUS_OPTIONS = [
   { value: 'resolved', label: 'Resolved' },
@@ -228,17 +229,22 @@ export default function MaintenanceDialog({
               status: j.faultStatus || 'partially_resolved',
               note: j.faultNote || '',
               maintenanceRef: `maintenance/${editData.id}`,
+              maintenanceDate: timestamp.fromDate(new Date(serviceDate)),
+              maintenanceTechnician: technician,
               actionTaken: j.workPerformed || '',
               partsReplaced: j.partsReplaced || '',
             });
           }
         }
+        toast.success('Maintenance record updated');
       } else {
         await createMaintenance(payload);
+        toast.success('Maintenance record created');
       }
       onClose();
     } catch (err) {
       console.error('Save failed:', err);
+      toast.error('Failed to save maintenance record');
     }
   };
 
@@ -372,7 +378,7 @@ export default function MaintenanceDialog({
                       component="span"
                       startIcon={<AttachFileIcon />}
                     >
-                      Attach invoice
+                      Attach contact
                     </Button>
                   </label>
 
@@ -380,8 +386,8 @@ export default function MaintenanceDialog({
                     {job.file
                       ? `Selected: ${job.file.name}`
                       : job.fileUrl
-                      ? `Attached: ${job.fileName || 'file'}`
-                      : 'No file attached'}
+                        ? `Attached: ${job.fileName || 'file'}`
+                        : 'No file attached'}
                   </Typography>
 
                   {(job.file || job.fileUrl) && (

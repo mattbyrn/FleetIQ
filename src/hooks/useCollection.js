@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
 import { projectFirestore } from '../firebase/config';
 
-export const useCollection = (collection) => {
+export const useCollection = (collection, constraints = []) => {
   const [documents, setDocuments] = useState(null);
   const [error, setError] = useState(null);
+  const constraintsKey = JSON.stringify(constraints);
 
   useEffect(() => {
     let ref = projectFirestore.collection(collection);
+    for (const [field, op, value] of constraints) {
+      ref = ref.where(field, op, value);
+    }
 
     const unsubscribe = ref.onSnapshot(
       (snapshot) => {
@@ -28,7 +32,7 @@ export const useCollection = (collection) => {
 
     // unsub on unmount
     return () => unsubscribe();
-  }, [collection]);
+  }, [collection, constraintsKey]);
 
   return { documents, error };
 };

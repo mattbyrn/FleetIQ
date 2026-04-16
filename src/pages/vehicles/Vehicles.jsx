@@ -23,6 +23,7 @@ export default function Vehicles() {
     title: 'Vehicles',
     sortField: 1,
     sortAsc: false,
+    hideInactiveToggle: true,
 
     keyColumn: [
       {
@@ -52,7 +53,8 @@ export default function Vehicles() {
       },
       {
         name: 'Seats',
-        selector: (row) => row.capacity || '-',
+        selector: (row) => Number(row.capacity) || 0,
+        cell: (row) => row.capacity || '-',
         maxWidth: '80px',
         sortable: true,
       },

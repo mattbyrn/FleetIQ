@@ -3,7 +3,7 @@ import { projectStorage } from '../firebase/config';
 const uploadFile = async (file) => {
   if (!file) throw new Error('No file provided');
 
-  const storageRef = projectStorage.ref(`uploads/${file.name}`);
+  const storageRef = projectStorage.ref(`uploads/${Date.now()}_${file.name}`);
   const snapshot = await storageRef.put(file);
   return await snapshot.ref.getDownloadURL();
 };

@@ -14,10 +14,13 @@ import EditIcon from '@material-ui/icons/Edit';
 import DeleteIcon from '@material-ui/icons/Delete';
 import FilterListIcon from '@material-ui/icons/FilterList';
 import { useFirestore } from '../../hooks/useFirestore';
+import { projectFirestore } from '../../firebase/config';
 import VehicleDialog from '../Dialogs/VehicleDialog';
 import GenericAdd from '../Dialogs/ComplianceDialog';
 import MaintenanceDialog from '../Dialogs/MaintenanceDialog';
+import DriverDialog from '../Dialogs/DriverDialog';
 import { defaultDialogState } from '../../utils/defaultConfig';
+import toast from 'react-hot-toast';
 import TableHeader from './TableHeader';
 import { renderExpiryDateCell } from '../../utils/DateCellRendering';
 import { defaultDialogMapping } from '../../utils/defaultConfig';
@@ -188,23 +191,100 @@ export default function GenericTable(props) {
     selectedRows.length = 0;
   };
 
-  const handleDelete = () => {
+  const deleteRelatedComplianceRecords = async (registrations) => {
+    const EXPIRY_COLLECTIONS = [
+      'taxes',
+      'cvrts',
+      'psvs',
+      'fireextinguishers',
+      'firstaidkits',
+      'tachocalibrations',
+    ];
+
+    const batch = projectFirestore.batch();
+    let count = 0;
+
+    for (const reg of registrations) {
+      for (const col of EXPIRY_COLLECTIONS) {
+        const snapshot = await projectFirestore
+          .collection(col)
+          .where('registration', '==', reg)
+          .get();
+        snapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+          count++;
+        });
+      }
+    }
+
+    if (count > 0) {
+      await batch.commit();
+    }
+    return count;
+  };
+
+  const handleDelete = async () => {
+    let deleted = false;
+
     if (selectedRows.length === 1) {
       if (window.confirm('Are you sure you want to delete this row?')) {
-        deleteDocument(selectedRows[0].id);
-        clearSelectedRows();
+        try {
+          await deleteDocument(selectedRows[0].id);
+          toast.success('Record deleted');
+          deleted = true;
+        } catch (err) {
+          toast.error('Failed to delete record');
+        }
       }
     } else {
       var confirm = prompt(
         'Please enter "CONFIRM" to delete these rows. \nWARNING: This cannot be undone!'
       );
       if (confirm && confirm.toLowerCase() === 'confirm') {
-        console.log('multidelete');
-        for (let i = 0; i < selectedRows.length; i++) {
-          deleteDocument(selectedRows[i].id);
+        try {
+          for (let i = 0; i < selectedRows.length; i++) {
+            await deleteDocument(selectedRows[i].id);
+          }
+          toast.success(`${selectedRows.length} records deleted`);
+          deleted = true;
+        } catch (err) {
+          toast.error('Failed to delete records');
         }
-        clearSelectedRows();
       }
+    }
+
+    if (deleted && props.collection === 'vehicles') {
+      const regs = selectedRows.map((r) => r.registration);
+      const regList = regs.join(', ');
+
+      const wantCleanup = window.confirm(
+        `Do you also want to delete all expiry records for ${regList}?\n\n` +
+          `(Taxes, CVRT, PSV, Fire Extinguishers, First Aid, Tacho Calibrations)\n\n` +
+          `Click Cancel to keep these records.`
+      );
+
+      if (wantCleanup) {
+        const reallyConfirm = window.confirm(
+          `Are you sure? This will permanently delete ALL expiry records for ${regList}. This cannot be undone.`
+        );
+
+        if (reallyConfirm) {
+          try {
+            const count = await deleteRelatedComplianceRecords(regs);
+            if (count > 0) {
+              toast.success(`${count} related compliance record(s) deleted`);
+            } else {
+              toast.success('No related compliance records found');
+            }
+          } catch (err) {
+            toast.error('Failed to delete related compliance records');
+          }
+        }
+      }
+    }
+
+    if (deleted) {
+      clearSelectedRows();
     }
   };
 
@@ -298,17 +378,19 @@ export default function GenericTable(props) {
             selectedRows={selectedRows}
             classes={classes}
           />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={showInactive}
-                onChange={(e) => setShowInactive(e.target.checked)}
-                color="primary"
-              />
-            }
-            label={props.inactiveLabel || 'Show Inactive Vehicles'}
-            style={{ marginLeft: '20px', marginBottom: '10px' }}
-          />
+          {!props.hideInactiveToggle && (
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showInactive}
+                  onChange={(e) => setShowInactive(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label={props.inactiveLabel || 'Show Inactive Vehicles'}
+              style={{ marginLeft: '20px', marginBottom: '10px' }}
+            />
+          )}
           <DataTable
             columns={updatedColumns}
             onSelectedRowsChange={(e) => setSelectedRows(e.selectedRows)}
@@ -357,6 +439,22 @@ export default function GenericTable(props) {
               editData={dialogState.edit ? selectedRows[0] : null}
               message={dialogState.message}
               flavour={dialogState.flavour}
+              callback={(res) => {
+                if (res === 'OK') {
+                  clearSelectedRows();
+                }
+                closeDialog();
+              }}
+            />
+          )}
+
+          {dialogState.dialogType === 'driver' && (
+            <DriverDialog
+              show={dialogState.shown}
+              title={dialogState.title}
+              collection={dialogState.collection}
+              edit={dialogState.edit}
+              editData={dialogState.edit ? selectedRows[0] : null}
               callback={(res) => {
                 if (res === 'OK') {
                   clearSelectedRows();
